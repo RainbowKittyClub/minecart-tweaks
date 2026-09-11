@@ -1,0 +1,13 @@
+package club.rainbowkitty.minecarttweaks.ext;
+
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+
+/** Access interface for {@code MinecartItem.type}, the entity placed when the item is used. */
+public interface MinecartItemExt {
+
+    /** Returns the entity type this item places when used on a rail. */
+    default EntityType<? extends AbstractMinecart> minecarttweaks$getType() {
+        throw new AssertionError("MinecartItemMixin supplies the body of this accessor");
+    }
+}

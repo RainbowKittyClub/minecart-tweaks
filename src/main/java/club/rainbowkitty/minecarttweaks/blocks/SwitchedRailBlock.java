@@ -1,0 +1,300 @@
+package club.rainbowkitty.minecarttweaks.blocks;
+
+import java.util.EnumMap;
+import java.util.Map;
+
+import com.mojang.serialization.MapCodec;
+import eu.pb4.polymer.blocks.api.BlockModelType;
+import eu.pb4.polymer.blocks.api.MultiPolymerBlockModel;
+import eu.pb4.polymer.blocks.api.PolymerBlockModel;
+import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
+import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import org.jspecify.annotations.Nullable;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseRailBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.block.state.properties.RailShape;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+import club.rainbowkitty.minecarttweaks.MinecartTweaks;
+
+/**
+ * A rail that curves a car off its right-hand edge — backward toward where the placer stood by
+ * default, forward under a redstone signal. {@link #FACING} is that forward direction. A car
+ * running along the forward axis passes straight through the half the switch is not joined to.
+ */
+public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedBlock {
+
+    /** The forward direction — the way the placer was looking; the branch leaves the right edge. */
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+
+    /** Whether a redstone signal joins the right edge to the forward half rather than the back. */
+    public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+
+    /** Set by a wrench to throw the branch against the redstone-driven default. */
+    public static final BooleanProperty REVERSED = BooleanProperty.create("reversed");
+
+    /** The live shape: a diverging curve at rest, briefly the straight run during a passthrough. */
+    public static final EnumProperty<RailShape> SHAPE = EnumProperty.create(
+            "shape", RailShape.class,
+            shape -> switch (shape) {
+                case NORTH_SOUTH, EAST_WEST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST, NORTH_EAST -> true;
+                default -> false;
+            });
+
+    /** Codec for block state serialization. */
+    public static final MapCodec<SwitchedRailBlock> CODEC = simpleCodec(SwitchedRailBlock::new);
+
+    // Ticks the switch is held straight for a passthrough before it is asked to settle back.
+    private static final int SETTLE_DELAY = 3;
+
+    private static final double MOVING_EPSILON = 1.0E-6;
+
+    // Both textures are drawn with the bottom edge toward the placer, so each is rotated half a
+    // turn from FACING's own y-rotation to bring that edge round to FACING's opposite.
+    private static final Map<Direction, BlockState> BRANCH_BACK = new EnumMap<>(Direction.class);
+    private static final Map<Direction, BlockState> BRANCH_FORWARD = new EnumMap<>(Direction.class);
+
+    static {
+        for (Direction facing : Direction.Plane.HORIZONTAL) {
+            int y = ((int) facing.toYRot() + 180) % 360;
+            BRANCH_BACK.put(facing, borrow("switch_rail_unpowered", y));
+            BRANCH_FORWARD.put(facing, borrow("switch_rail_powered", y));
+        }
+    }
+
+    /** Constructs a switched rail block with the given block behaviour properties. */
+    public SwitchedRailBlock(BlockBehaviour.Properties properties) {
+        // Not a "straight" rail: it holds a curve, and must not broadcast straight-rail updates.
+        super(false, properties);
+        registerDefaultState(defaultBlockState()
+                .setValue(FACING, Direction.NORTH)
+                .setValue(POWERED, false)
+                .setValue(REVERSED, false)
+                .setValue(SHAPE, restingShape(Direction.NORTH, false))
+                .setValue(WATERLOGGED, false));
+    }
+
+    // ---- geometry ----
+
+    /** The edge the branch leaves by: the right hand of a car travelling toward {@code facing}. */
+    public static Direction rightEdge(Direction facing) {
+        return facing.getClockWise();
+    }
+
+    /** The curve the switch rests at: the right edge joined forward when thrown, else back. */
+    public static RailShape restingShape(Direction facing, boolean forward) {
+        return curve(rightEdge(facing), forward ? facing : facing.getOpposite());
+    }
+
+    // Whether the branch is thrown to the forward half. A redstone signal throws it forward; a
+    // wrench (REVERSED) flips it from wherever the signal leaves it.
+    private static boolean divergesForward(BlockState state) {
+        return state.getValue(POWERED) != state.getValue(REVERSED);
+    }
+
+    // The straight run along the forward axis, which a passthrough car takes.
+    private static RailShape straightShape(Direction facing) {
+        return facing.getAxis() == Direction.Axis.Z ? RailShape.NORTH_SOUTH : RailShape.EAST_WEST;
+    }
+
+    // The end of the forward axis the switch is not joined to, so a car from there passes straight.
+    private static Direction openEnd(Direction facing, boolean forward) {
+        return forward ? facing.getOpposite() : facing;
+    }
+
+    // The flat rail shape whose two ends are a and b.
+    private static RailShape curve(Direction a, Direction b) {
+        boolean n = a == Direction.NORTH || b == Direction.NORTH;
+        boolean s = a == Direction.SOUTH || b == Direction.SOUTH;
+        boolean e = a == Direction.EAST || b == Direction.EAST;
+        if (n && s) {
+            return RailShape.NORTH_SOUTH;
+        }
+        if (e && (a == Direction.WEST || b == Direction.WEST)) {
+            return RailShape.EAST_WEST;
+        }
+        if (s && e) {
+            return RailShape.SOUTH_EAST;
+        }
+        if (s) {
+            return RailShape.SOUTH_WEST;
+        }
+        return e ? RailShape.NORTH_EAST : RailShape.NORTH_WEST;
+    }
+
+    /**
+     * Orients any switch {@code cart} is riding or about to roll onto, so vanilla movement reads
+     * the shape this switch's facing, signal and the car's approach call for.
+     */
+    public static void steer(ServerLevel level, AbstractMinecart cart) {
+        Vec3 movement = cart.getDeltaMovement();
+        if (movement.horizontalDistanceSqr() <= MOVING_EPSILON) {
+            return;
+        }
+
+        Direction travel = Direction.getApproximateNearest(movement.x(), 0.0, movement.z());
+        BlockPos on = cart.getCurrentBlockPosOrRailBelow();
+
+        orient(level, on, travel);
+        orient(level, on.relative(travel), travel);
+    }
+
+    private static void orient(ServerLevel level, BlockPos pos, Direction travel) {
+        BlockState state = level.getBlockState(pos);
+        if (!(state.getBlock() instanceof SwitchedRailBlock switchRail)) {
+            return;
+        }
+
+        Direction facing = state.getValue(FACING);
+        boolean forward = divergesForward(state);
+        RailShape resting = restingShape(facing, forward);
+
+        // A car entering from the open end of the forward axis runs straight across; the branch
+        // and the joined half both follow the resting curve.
+        RailShape wanted = travel.getOpposite() == openEnd(facing, forward)
+                ? straightShape(facing)
+                : resting;
+
+        if (state.getValue(SHAPE) != wanted) {
+            level.setBlock(pos, state.setValue(SHAPE, wanted), Block.UPDATE_CLIENTS);
+        }
+        // Keep a settle pending for as long as a car is crossing straight, so the switch does not
+        // return to its curve mid-passthrough. A car still on it re-arms this next tick.
+        if (wanted != resting && !level.getBlockTicks().hasScheduledTick(pos, switchRail)) {
+            level.scheduleTick(pos, switchRail, SETTLE_DELAY);
+        }
+    }
+
+    // ---- block behaviour ----
+
+    @Override
+    protected MapCodec<? extends BaseRailBlock> codec() {
+        return CODEC;
+    }
+
+    @Override
+    public Property<RailShape> getShapeProperty() {
+        return SHAPE;
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        Direction facing = context.getHorizontalDirection();
+        boolean powered = level.hasNeighborSignal(pos);
+
+        return defaultBlockState()
+                .setValue(FACING, facing)
+                .setValue(POWERED, powered)
+                .setValue(SHAPE, restingShape(facing, powered))
+                .setValue(WATERLOGGED, level.getFluidState(pos).is(Fluids.WATER));
+    }
+
+    // Follows the redstone signal, snapping to the matching resting curve. Called from
+    // BaseRailBlock.neighborChanged.
+    @Override
+    protected void updateState(BlockState state, Level level, BlockPos pos, Block neighbourBlock) {
+        boolean powered = level.hasNeighborSignal(pos);
+        if (powered != state.getValue(POWERED)) {
+            boolean forward = powered != state.getValue(REVERSED);
+            level.setBlock(
+                    pos,
+                    state.setValue(POWERED, powered)
+                            .setValue(SHAPE, restingShape(state.getValue(FACING), forward)),
+                    Block.UPDATE_CLIENTS);
+        }
+    }
+
+    /** Flips a switch to its other branch, from wherever its redstone signal has left it. */
+    public static void toggle(ServerLevel level, BlockPos pos, BlockState state) {
+        boolean reversed = !state.getValue(REVERSED);
+        boolean forward = state.getValue(POWERED) != reversed;
+        level.setBlock(
+                pos,
+                state.setValue(REVERSED, reversed)
+                        .setValue(SHAPE, restingShape(state.getValue(FACING), forward)),
+                Block.UPDATE_CLIENTS);
+    }
+
+    // Settles the switch back to its resting curve once the passthrough car has gone. The orient()
+    // guard keeps at most one of these pending per switch, so a busy switch cannot pile them up.
+    @Override
+    protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        RailShape resting = restingShape(state.getValue(FACING), divergesForward(state));
+        if (state.getValue(SHAPE) == resting) {
+            return;
+        }
+        if (occupied(level, pos)) {
+            level.scheduleTick(pos, this, SETTLE_DELAY);
+        } else {
+            level.setBlock(pos, state.setValue(SHAPE, resting), Block.UPDATE_CLIENTS);
+        }
+    }
+
+    private static boolean occupied(Level level, BlockPos pos) {
+        return !level.getEntitiesOfClass(AbstractMinecart.class, new AABB(pos)).isEmpty();
+    }
+
+    // A switch keeps the shape its facing and signal give it; neighbours never bend it.
+    @Override
+    protected BlockState updateDir(Level level, BlockPos pos, BlockState state, boolean first) {
+        return state;
+    }
+
+    @Override
+    protected BlockState rotate(BlockState state, Rotation rotation) {
+        return reface(state, rotation.rotate(state.getValue(FACING)));
+    }
+
+    @Override
+    protected BlockState mirror(BlockState state, Mirror mirror) {
+        return reface(state, mirror.mirror(state.getValue(FACING)));
+    }
+
+    // Turns the switch to face a new way, carrying which side it diverges to with it.
+    private static BlockState reface(BlockState state, Direction facing) {
+        return state.setValue(FACING, facing)
+                .setValue(SHAPE, restingShape(facing, divergesForward(state)));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING, POWERED, REVERSED, SHAPE, WATERLOGGED);
+    }
+
+    /** The borrowed vanilla state a client is shown; the passthrough keeps the resting look. */
+    @Override
+    public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
+        Map<Direction, BlockState> model =
+                divergesForward(state) ? BRANCH_FORWARD : BRANCH_BACK;
+        return model.get(state.getValue(FACING));
+    }
+
+    private static BlockState borrow(String model, int yRotation) {
+        return PolymerBlockResourceUtils.requestBlock(
+                BlockModelType.TRIPWIRE_FLAT,
+                MultiPolymerBlockModel.of().with(
+                        PolymerBlockModel.of(MinecartTweaks.id("block/" + model), 0, yRotation)));
+    }
+}

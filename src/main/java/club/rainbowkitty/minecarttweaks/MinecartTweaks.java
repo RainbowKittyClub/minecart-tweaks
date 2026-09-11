@@ -31,7 +31,6 @@ import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
 
 /** Mod entrypoint — wires events and registers content. */
 public class MinecartTweaks implements ModInitializer {
-
     /** The mod's namespace, used for all Identifier construction. */
     public static final String MOD_ID = "minecarttweaks";
 
@@ -42,6 +41,7 @@ public class MinecartTweaks implements ModInitializer {
     // lists all four rails in both of these tabs, so the junction rail joins both to match.
     private static final ResourceKey<CreativeModeTab> REDSTONE_BLOCKS_TAB = ResourceKey.create(
             Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("redstone_blocks"));
+
     private static final ResourceKey<CreativeModeTab> TOOLS_AND_UTILITIES_TAB = ResourceKey.create(
             Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("tools_and_utilities"));
 
@@ -83,6 +83,11 @@ public class MinecartTweaks implements ModInitializer {
                         : InteractionResult.PASS);
     }
 
+    /** Constructs a namespaced {@link Identifier} under this mod's namespace. */
+    public static Identifier id(String name) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, name);
+    }
+
     // Shift-clicking a cart with a link item couples it to the last one clicked; with anything
     // else, tries to craft the cart into whatever that item upgrades it to.
     private static InteractionResult useMinecart(
@@ -113,10 +118,5 @@ public class MinecartTweaks implements ModInitializer {
         }
 
         return InteractionResult.PASS;
-    }
-
-    /** Constructs a namespaced {@link Identifier} under this mod's namespace. */
-    public static Identifier id(String name) {
-        return Identifier.fromNamespaceAndPath(MOD_ID, name);
     }
 }

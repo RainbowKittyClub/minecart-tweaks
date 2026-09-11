@@ -24,14 +24,16 @@ import club.rainbowkitty.minecarttweaks.block.JunctionRailBlock;
  * @param toForward the exit the near cart leaves its own block by, travelling towards the far
  */
 public record RailPath(double distance, Vec3 fromForward, Vec3 toForward) {
-
     // Below this a length or a dot product is treated as zero.
     private static final double EPSILON = 1.0E-5;
 
     // The four directions one rail can lead to another in.
     private static final Vec3 EAST = new Vec3(1.0, 0.0, 0.0);
+
     private static final Vec3 WEST = new Vec3(-1.0, 0.0, 0.0);
+
     private static final Vec3 SOUTH = new Vec3(0.0, 0.0, 1.0);
+
     private static final Vec3 NORTH = new Vec3(0.0, 0.0, -1.0);
 
     /**
@@ -128,29 +130,6 @@ public record RailPath(double distance, Vec3 fromForward, Vec3 toForward) {
                 Math.abs(cross) < 0.5 ? 0 : (int) Math.signum(cross), grade(state, out));
     }
 
-    // Whether the rail climbs, drops or runs level in the direction of out.
-    private static int grade(BlockState state, Vec3 out) {
-        var exits = AbstractMinecart.exits(shape(state, out));
-        Vec3i first = exits.getFirst();
-        Vec3i second = exits.getSecond();
-
-        if (first.getY() == second.getY()) {
-            return 0;
-        }
-
-        // On a slope the exit marked level is the one the rail climbs towards, and the other is
-        // marked a block down; it is a label for which end is which, not an offset to travel by.
-        return towards(first.getY() == 0 ? first : second, out) > 0.0 ? 1 : -1;
-    }
-
-    // Whichever of the block's two exits the movement is heading closest to.
-    private static BlockPos exitTaken(BlockPos[] around, BlockPos pos, Vec3 movement) {
-        double first = direction(pos, around[0]).dot(movement);
-        double second = direction(pos, around[1]).dot(movement);
-
-        return first >= second ? around[0] : around[1];
-    }
-
     /**
      * {@code forward} given the rise of the rail {@code cart} stands on, so that moving a cart
      * along it climbs a slope rather than travelling into the hillside and off the track.
@@ -182,6 +161,49 @@ public record RailPath(double distance, Vec3 fromForward, Vec3 toForward) {
         }
 
         return flat.add(0.0, out.getY() == 0 ? 1.0 : -1.0, 0.0);
+    }
+
+    /**
+     * The two rails the block at {@code pos} exits onto, in the order its shape lists them.
+     *
+     * <p>On a slope the Y of an exit marks which end is the low one, it is not an offset to add:
+     * the rail beyond the high end stands a block up, and the one beyond the low end is level with
+     * the slope or a block down. Offsetting by the marker lands on air a block under the track
+     * instead. {@code movement} only matters on a junction rail, which picks its axis from it.
+     */
+    public static BlockPos[] neighbours(Level level, BlockPos pos, Vec3 movement) {
+        BlockState state = level.getBlockState(pos);
+        var exits = AbstractMinecart.exits(shape(state, movement));
+        Vec3i first = exits.getFirst();
+        Vec3i second = exits.getSecond();
+        boolean sloped = first.getY() != second.getY();
+
+        return new BlockPos[] {
+                neighbour(level, pos, first, sloped && first.getY() == 0),
+                neighbour(level, pos, second, sloped && second.getY() == 0)};
+    }
+
+    // Whether the rail climbs, drops or runs level in the direction of out.
+    private static int grade(BlockState state, Vec3 out) {
+        var exits = AbstractMinecart.exits(shape(state, out));
+        Vec3i first = exits.getFirst();
+        Vec3i second = exits.getSecond();
+
+        if (first.getY() == second.getY()) {
+            return 0;
+        }
+
+        // On a slope the exit marked level is the one the rail climbs towards, and the other is
+        // marked a block down; it is a label for which end is which, not an offset to travel by.
+        return towards(first.getY() == 0 ? first : second, out) > 0.0 ? 1 : -1;
+    }
+
+    // Whichever of the block's two exits the movement is heading closest to.
+    private static BlockPos exitTaken(BlockPos[] around, BlockPos pos, Vec3 movement) {
+        double first = direction(pos, around[0]).dot(movement);
+        double second = direction(pos, around[1]).dot(movement);
+
+        return first >= second ? around[0] : around[1];
     }
 
     // How much of forward points out of the block by exit.
@@ -259,26 +281,6 @@ public record RailPath(double distance, Vec3 fromForward, Vec3 toForward) {
         }
 
         return state.getValue(((BaseRailBlock) state.getBlock()).getShapeProperty());
-    }
-
-    /**
-     * The two rails the block at {@code pos} exits onto, in the order its shape lists them.
-     *
-     * <p>On a slope the Y of an exit marks which end is the low one, it is not an offset to add:
-     * the rail beyond the high end stands a block up, and the one beyond the low end is level with
-     * the slope or a block down. Offsetting by the marker lands on air a block under the track
-     * instead. {@code movement} only matters on a junction rail, which picks its axis from it.
-     */
-    public static BlockPos[] neighbours(Level level, BlockPos pos, Vec3 movement) {
-        BlockState state = level.getBlockState(pos);
-        var exits = AbstractMinecart.exits(shape(state, movement));
-        Vec3i first = exits.getFirst();
-        Vec3i second = exits.getSecond();
-        boolean sloped = first.getY() != second.getY();
-
-        return new BlockPos[] {
-                neighbour(level, pos, first, sloped && first.getY() == 0),
-                neighbour(level, pos, second, sloped && second.getY() == 0)};
     }
 
     // The block one exit away, taking the rail a step up or down where that is where it lies.

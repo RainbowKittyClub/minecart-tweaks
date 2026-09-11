@@ -23,7 +23,6 @@ import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
  * along the rails.
  */
 public final class TrainCoupling {
-
     // Fraction of the spacing error taken up per tick. Short of all of it because a car is moved
     // straight to its new position, and closing a large error in one tick is a visible jump.
     private static final double SETTLE = 0.5;
@@ -35,7 +34,9 @@ public final class TrainCoupling {
     // them to, and how far past the link distance a stretched link survives before breaking.
     // One geometry: none of the three can be retuned without the others.
     private static final double MAX_LINK_DISTANCE = 2.25;
+
     private static final double TARGET_SPACING = 2.0;
+
     private static final double SEVER_SLACK = 1.25;
 
     // Two batches: one for the batch a client may already be sitting on, one to leave it with
@@ -96,6 +97,157 @@ public final class TrainCoupling {
                 && cart.hasLink()
                 && MTGameRules.trainsEnabled(cart.level())
                 && TrainSnapshot.of(cart) == TrainSnapshot.of(car);
+    }
+
+    /**
+     * Asks every car in {@code cart}'s train to hold its position updates until one common tick, so
+     * that a client replaying them out of step with each other is made to re-time itself.
+     */
+    public static void resyncTrain(AbstractMinecart cart) {
+        for (AbstractMinecart member : TrainSnapshot.of(cart).cars()) {
+            member.minecarttweaks$setResyncAt(member.level().getGameTime() + RESYNC_HOLD);
+        }
+    }
+
+    /**
+     * The acceleration each car in {@code cart}'s train gets. Every engine hauls {@link #FREE_CARS}
+     * trailers at its full output before the rest of the train starts dividing that output down, so
+     * a furnace cart and two cars climb a slope as readily as one alone and only a longer train
+     * falls off. A cart on its own is a train of one and is unaffected.
+     */
+    public static double sharedDrive(AbstractMinecart cart) {
+        List<AbstractMinecart> cars = TrainSnapshot.of(cart).cars();
+        double drive = 0.0;
+        int engines = 0;
+
+        for (AbstractMinecart member : cars) {
+            double output = member.minecarttweaks$driveAcceleration();
+            drive += output;
+
+            if (output > 0.0) {
+                engines++;
+            }
+        }
+
+        return engines == 0 ? 0.0 : drive / Math.max(1, cars.size() - FREE_CARS * engines);
+    }
+
+    /**
+     * Whether anything is driving {@code cart}, its own engine or one it is coupled to. Ordered so
+     * an unlinked cart answers off its own field without walking a train.
+     */
+    public static boolean underPower(AbstractMinecart cart) {
+        return cart.minecarttweaks$driveAcceleration() > 0
+                || (cart.hasLink() && sharedDrive(cart) > 0);
+    }
+
+    /**
+     * Whether anyone aboard {@code cart}'s train is steering it. Vanilla's rider nudge is a
+     * thousandth of a block per tick, under the floor the dead stop cuts to zero, so it does not
+     * survive its own first tick unless asked about here. Bounded by {@link #shovable}: a train too
+     * long to shove from outside is too long to shuffle from inside.
+     */
+    public static boolean riderSteering(AbstractMinecart cart) {
+        if (!cart.hasLink()) {
+            return steering(cart);
+        }
+
+        if (!shovable(cart)) {
+            return false;
+        }
+
+        // The cart is in its own snapshot, so this covers its own rider too.
+        for (AbstractMinecart member : TrainSnapshot.of(cart).cars()) {
+            if (steering(member)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The direction the train's powered cars are pushing in, or zero if none of them is. Summed, so
+     * two furnace carts aimed against each other cancel. For starting from a standstill only, where
+     * a car has no movement of its own to read a heading off.
+     */
+    public static Vec3 driveHeading(AbstractMinecart cart) {
+        Vec3 heading = Vec3.ZERO;
+
+        for (AbstractMinecart member : TrainSnapshot.of(cart).cars()) {
+            heading = heading.add(member.minecarttweaks$driveHeading());
+        }
+
+        return heading.lengthSqr() > EPSILON ? heading.normalize() : Vec3.ZERO;
+    }
+
+    /** The furthest centre-to-centre distance at which two carts may be linked. */
+    public static double maxLinkDistance() {
+        return MAX_LINK_DISTANCE;
+    }
+
+    /**
+     * Whether {@code cart}'s train is short enough to be shifted by leaning on it at all, which
+     * stops at {@link #PUSHABLE_CARS}. How hard it is below that is {@link #mass}'s to say.
+     */
+    public static boolean shovable(AbstractMinecart cart) {
+        return mass(cart) < PUSHABLE_CARS;
+    }
+
+    /**
+     * How fast {@code cart}'s train is travelling along {@code line}, averaged over its cars.
+     *
+     * <p>What a car is about to be doing rather than what it is doing. A shove lands whole on the
+     * one car that was touched and is not shared out until the train next settles, so a car read
+     * the instant it is pushed reports the same speed whatever it is coupled to.
+     */
+    public static double sharedSpeed(AbstractMinecart cart, Vec3 line) {
+        List<AbstractMinecart> cars = TrainSnapshot.of(cart).cars();
+        double total = 0.0;
+
+        for (AbstractMinecart member : cars) {
+            total += member.getDeltaMovement().dot(line);
+        }
+
+        return total / cars.size();
+    }
+
+    /**
+     * The mass of {@code cart}'s train, counted in cars. A cart on its own is a train of one, and a
+     * loaded car weighs what an empty one does — every threshold measured against this is expressed
+     * in these units, so the unit cannot change without retuning all of them together.
+     */
+    public static double mass(AbstractMinecart cart) {
+        // Short-circuited rather than walked: this is asked of every cart every tick, and most
+        // carts on a server are not linked to anything.
+        return cart.hasLink() ? TrainSnapshot.of(cart).size() : 1;
+    }
+
+    /**
+     * How hard two trains are about to meet, or zero if they are not closing on each other at all.
+     *
+     * <p>The rate the gap shrinks rather than either train's own speed, so a heavy train merely
+     * catching a light one up barely registers, times the reduced mass {@code m_a·m_b/(m_a+m_b)} —
+     * which keeps a loaded train hitting a parked cart on the parked cart's scale, not the train's.
+     */
+    public static double closingMomentum(AbstractMinecart a, AbstractMinecart b) {
+        Vec3 between = b.position().subtract(a.position()).horizontal();
+
+        if (between.lengthSqr() < EPSILON) {
+            return 0.0;
+        }
+
+        Vec3 line = between.normalize();
+        double closing = a.getDeltaMovement().dot(line) - b.getDeltaMovement().dot(line);
+
+        if (closing <= 0.0) {
+            return 0.0;
+        }
+
+        double massA = mass(a);
+        double massB = mass(b);
+
+        return closing * massA * massB / (massA + massB);
     }
 
     /**
@@ -191,162 +343,11 @@ public final class TrainCoupling {
         }
     }
 
-    /**
-     * Asks every car in {@code cart}'s train to hold its position updates until one common tick, so
-     * that a client replaying them out of step with each other is made to re-time itself.
-     */
-    public static void resyncTrain(AbstractMinecart cart) {
-        for (AbstractMinecart member : TrainSnapshot.of(cart).cars()) {
-            member.minecarttweaks$setResyncAt(member.level().getGameTime() + RESYNC_HOLD);
-        }
-    }
-
-    /**
-     * The acceleration each car in {@code cart}'s train gets. Every engine hauls {@link #FREE_CARS}
-     * trailers at its full output before the rest of the train starts dividing that output down, so
-     * a furnace cart and two cars climb a slope as readily as one alone and only a longer train
-     * falls off. A cart on its own is a train of one and is unaffected.
-     */
-    public static double sharedDrive(AbstractMinecart cart) {
-        List<AbstractMinecart> cars = TrainSnapshot.of(cart).cars();
-        double drive = 0.0;
-        int engines = 0;
-
-        for (AbstractMinecart member : cars) {
-            double output = member.minecarttweaks$driveAcceleration();
-            drive += output;
-
-            if (output > 0.0) {
-                engines++;
-            }
-        }
-
-        return engines == 0 ? 0.0 : drive / Math.max(1, cars.size() - FREE_CARS * engines);
-    }
-
-    /**
-     * Whether anything is driving {@code cart}, its own engine or one it is coupled to. Ordered so
-     * an unlinked cart answers off its own field without walking a train.
-     */
-    public static boolean underPower(AbstractMinecart cart) {
-        return cart.minecarttweaks$driveAcceleration() > 0
-                || (cart.hasLink() && sharedDrive(cart) > 0);
-    }
-
-    /**
-     * Whether anyone aboard {@code cart}'s train is steering it. Vanilla's rider nudge is a
-     * thousandth of a block per tick, under the floor the dead stop cuts to zero, so it does not
-     * survive its own first tick unless asked about here. Bounded by {@link #shovable}: a train too
-     * long to shove from outside is too long to shuffle from inside.
-     */
-    public static boolean riderSteering(AbstractMinecart cart) {
-        if (!cart.hasLink()) {
-            return steering(cart);
-        }
-
-        if (!shovable(cart)) {
-            return false;
-        }
-
-        // The cart is in its own snapshot, so this covers its own rider too.
-        for (AbstractMinecart member : TrainSnapshot.of(cart).cars()) {
-            if (steering(member)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     // One car's rider asking to move. Client intent rather than the player's own velocity, which a
     // passenger does not have — it is the same field vanilla's own nudge reads.
     private static boolean steering(AbstractMinecart cart) {
         return cart.getFirstPassenger() instanceof ServerPlayer player
                 && player.getLastClientMoveIntent().lengthSqr() > 0.0;
-    }
-
-    /**
-     * The direction the train's powered cars are pushing in, or zero if none of them is. Summed, so
-     * two furnace carts aimed against each other cancel. For starting from a standstill only, where
-     * a car has no movement of its own to read a heading off.
-     */
-    public static Vec3 driveHeading(AbstractMinecart cart) {
-        Vec3 heading = Vec3.ZERO;
-
-        for (AbstractMinecart member : TrainSnapshot.of(cart).cars()) {
-            heading = heading.add(member.minecarttweaks$driveHeading());
-        }
-
-        return heading.lengthSqr() > EPSILON ? heading.normalize() : Vec3.ZERO;
-    }
-
-    /** The furthest centre-to-centre distance at which two carts may be linked. */
-    public static double maxLinkDistance() {
-        return MAX_LINK_DISTANCE;
-    }
-
-    /**
-     * Whether {@code cart}'s train is short enough to be shifted by leaning on it at all, which
-     * stops at {@link #PUSHABLE_CARS}. How hard it is below that is {@link #mass}'s to say.
-     */
-    public static boolean shovable(AbstractMinecart cart) {
-        return mass(cart) < PUSHABLE_CARS;
-    }
-
-    /**
-     * How fast {@code cart}'s train is travelling along {@code line}, averaged over its cars.
-     *
-     * <p>What a car is about to be doing rather than what it is doing. A shove lands whole on the
-     * one car that was touched and is not shared out until the train next settles, so a car read
-     * the instant it is pushed reports the same speed whatever it is coupled to.
-     */
-    public static double sharedSpeed(AbstractMinecart cart, Vec3 line) {
-        List<AbstractMinecart> cars = TrainSnapshot.of(cart).cars();
-        double total = 0.0;
-
-        for (AbstractMinecart member : cars) {
-            total += member.getDeltaMovement().dot(line);
-        }
-
-        return total / cars.size();
-    }
-
-    /**
-     * The mass of {@code cart}'s train, counted in cars. A cart on its own is a train of one, and a
-     * loaded car weighs what an empty one does — every threshold measured against this is expressed
-     * in these units, so the unit cannot change without retuning all of them together.
-     */
-    public static double mass(AbstractMinecart cart) {
-        // Short-circuited rather than walked: this is asked of every cart every tick, and most
-        // carts on a server are not linked to anything.
-        return cart.hasLink() ? TrainSnapshot.of(cart).size() : 1;
-    }
-
-    /**
-     * How hard two trains are about to meet, or zero if they are not closing on each other at all.
-     *
-     * <p>The rate the gap shrinks rather than either train's own speed, so a heavy train merely
-     * catching a light one up barely registers, times the reduced mass {@code m_a·m_b/(m_a+m_b)} —
-     * which keeps a loaded train hitting a parked cart on the parked cart's scale, not the train's.
-     */
-    public static double closingMomentum(AbstractMinecart a, AbstractMinecart b) {
-        Vec3 between = b.position().subtract(a.position()).horizontal();
-
-        if (between.lengthSqr() < EPSILON) {
-            return 0.0;
-        }
-
-        Vec3 line = between.normalize();
-        double closing = a.getDeltaMovement().dot(line) - b.getDeltaMovement().dot(line);
-
-        if (closing <= 0.0) {
-            return 0.0;
-        }
-
-        double massA = mass(a);
-        double massB = mass(b);
-
-        return closing * massA * massB / (massA + massB);
     }
 
     // Halfway round a corner the exit a car leaves by is square to the way it is currently moving,

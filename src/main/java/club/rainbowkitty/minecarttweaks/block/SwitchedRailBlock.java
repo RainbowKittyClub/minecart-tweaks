@@ -43,7 +43,6 @@ import club.rainbowkitty.minecarttweaks.MinecartTweaks;
  * running along the forward axis passes straight through the half the switch is not joined to.
  */
 public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedBlock {
-
     /** The forward direction — the way the placer was looking; the branch leaves the right edge. */
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 
@@ -72,6 +71,7 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
     // Both textures are drawn with the bottom edge toward the placer, so each is rotated half a
     // turn from FACING's own y-rotation to bring that edge round to FACING's opposite.
     private static final Map<Direction, BlockState> BRANCH_BACK = new EnumMap<>(Direction.class);
+
     private static final Map<Direction, BlockState> BRANCH_FORWARD = new EnumMap<>(Direction.class);
 
     static {
@@ -104,6 +104,61 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
     /** The curve the switch rests at: the right edge joined forward when thrown, else back. */
     public static RailShape restingShape(Direction facing, boolean forward) {
         return curve(rightEdge(facing), forward ? facing : facing.getOpposite());
+    }
+
+    /**
+     * Orients any switch {@code cart} is riding or about to roll onto, so vanilla movement reads
+     * the shape this switch's facing, signal and the car's approach call for.
+     */
+    public static void steer(ServerLevel level, AbstractMinecart cart) {
+        Vec3 movement = cart.getDeltaMovement();
+        if (movement.horizontalDistanceSqr() <= MOVING_EPSILON) {
+            return;
+        }
+
+        Direction travel = Direction.getApproximateNearest(movement.x(), 0.0, movement.z());
+        BlockPos on = cart.getCurrentBlockPosOrRailBelow();
+
+        orient(level, on, travel);
+        orient(level, on.relative(travel), travel);
+    }
+
+    @Override
+    public Property<RailShape> getShapeProperty() {
+        return SHAPE;
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        Direction facing = context.getHorizontalDirection();
+        boolean powered = level.hasNeighborSignal(pos);
+
+        return defaultBlockState()
+                .setValue(FACING, facing)
+                .setValue(POWERED, powered)
+                .setValue(SHAPE, restingShape(facing, powered))
+                .setValue(WATERLOGGED, level.getFluidState(pos).is(Fluids.WATER));
+    }
+
+    /** Flips a switch to its other branch, from wherever its redstone signal has left it. */
+    public static void toggle(ServerLevel level, BlockPos pos, BlockState state) {
+        boolean reversed = !state.getValue(REVERSED);
+        boolean forward = state.getValue(POWERED) != reversed;
+        level.setBlock(
+                pos,
+                state.setValue(REVERSED, reversed)
+                        .setValue(SHAPE, restingShape(state.getValue(FACING), forward)),
+                Block.UPDATE_CLIENTS);
+    }
+
+    /** The borrowed vanilla state a client is shown; the passthrough keeps the resting look. */
+    @Override
+    public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
+        Map<Direction, BlockState> model =
+                divergesForward(state) ? BRANCH_FORWARD : BRANCH_BACK;
+        return model.get(state.getValue(FACING));
     }
 
     // Whether the branch is thrown to the forward half. A redstone signal throws it forward; a
@@ -142,23 +197,6 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
         return e ? RailShape.NORTH_EAST : RailShape.NORTH_WEST;
     }
 
-    /**
-     * Orients any switch {@code cart} is riding or about to roll onto, so vanilla movement reads
-     * the shape this switch's facing, signal and the car's approach call for.
-     */
-    public static void steer(ServerLevel level, AbstractMinecart cart) {
-        Vec3 movement = cart.getDeltaMovement();
-        if (movement.horizontalDistanceSqr() <= MOVING_EPSILON) {
-            return;
-        }
-
-        Direction travel = Direction.getApproximateNearest(movement.x(), 0.0, movement.z());
-        BlockPos on = cart.getCurrentBlockPosOrRailBelow();
-
-        orient(level, on, travel);
-        orient(level, on.relative(travel), travel);
-    }
-
     // Points one switch at a car travelling the given way; any other block at pos is left alone.
     private static void orient(ServerLevel level, BlockPos pos, Direction travel) {
         BlockState state = level.getBlockState(pos);
@@ -193,25 +231,6 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
         return CODEC;
     }
 
-    @Override
-    public Property<RailShape> getShapeProperty() {
-        return SHAPE;
-    }
-
-    @Override
-    public BlockState getStateForPlacement(BlockPlaceContext context) {
-        Level level = context.getLevel();
-        BlockPos pos = context.getClickedPos();
-        Direction facing = context.getHorizontalDirection();
-        boolean powered = level.hasNeighborSignal(pos);
-
-        return defaultBlockState()
-                .setValue(FACING, facing)
-                .setValue(POWERED, powered)
-                .setValue(SHAPE, restingShape(facing, powered))
-                .setValue(WATERLOGGED, level.getFluidState(pos).is(Fluids.WATER));
-    }
-
     // Follows the redstone signal, snapping to the matching resting curve. Called from
     // BaseRailBlock.neighborChanged.
     @Override
@@ -225,17 +244,6 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
                             .setValue(SHAPE, restingShape(state.getValue(FACING), forward)),
                     Block.UPDATE_CLIENTS);
         }
-    }
-
-    /** Flips a switch to its other branch, from wherever its redstone signal has left it. */
-    public static void toggle(ServerLevel level, BlockPos pos, BlockState state) {
-        boolean reversed = !state.getValue(REVERSED);
-        boolean forward = state.getValue(POWERED) != reversed;
-        level.setBlock(
-                pos,
-                state.setValue(REVERSED, reversed)
-                        .setValue(SHAPE, restingShape(state.getValue(FACING), forward)),
-                Block.UPDATE_CLIENTS);
     }
 
     // Settles the switch back to its resting curve once the passthrough car has gone. The orient()
@@ -286,14 +294,6 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, POWERED, REVERSED, SHAPE, WATERLOGGED);
-    }
-
-    /** The borrowed vanilla state a client is shown; the passthrough keeps the resting look. */
-    @Override
-    public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
-        Map<Direction, BlockState> model =
-                divergesForward(state) ? BRANCH_FORWARD : BRANCH_BACK;
-        return model.get(state.getValue(FACING));
     }
 
     // Reserves one Polymer block state showing the named model at the given yaw.

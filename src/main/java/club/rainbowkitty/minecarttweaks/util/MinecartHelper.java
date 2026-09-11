@@ -39,7 +39,6 @@ import club.rainbowkitty.minecarttweaks.train.TrainSnapshot;
 
 /** Utility methods for minecart linking, upgrading, and brake logic. */
 public final class MinecartHelper {
-
     /** Why a link was not allowed. Each constant names its own overlay message. */
     public enum Refusal {
         DISABLED,
@@ -157,6 +156,59 @@ public final class MinecartHelper {
                 neighbour.position().subtract(cart.position()).scale(0.5));
     }
 
+    /** Whether {@code entity} is a cart currently sitting on no rail. */
+    public static boolean isDerailed(Entity entity) {
+        return entity instanceof AbstractMinecart cart
+                && !BaseRailBlock.isRail(
+                        cart.level().getBlockState(cart.getCurrentBlockPosOrRailBelow()));
+    }
+
+    /**
+     * Attempts to upgrade the cart under the player's hand using a crafting recipe, preserving its
+     * links and passengers.
+     */
+    public static boolean tryUpgradeMinecart(
+            ServerPlayer player, ServerLevel level, InteractionHand hand,
+            AbstractMinecart originalMinecart, ItemStack heldItem) {
+        if (!originalMinecart.isAlive()) {
+            return false;
+        }
+
+        ItemStack crafted = craftUpgrade(level, heldItem, originalMinecart.getPickResult());
+        if (!(crafted.getItem() instanceof MinecartItem craftedCart)) {
+            return false;
+        }
+
+        Entity replacement = AbstractMinecart.createMinecart(
+                level, originalMinecart.getX(), originalMinecart.getY(), originalMinecart.getZ(),
+                craftedCart.minecarttweaks$getType(), EntitySpawnReason.DISPENSER, crafted, player);
+
+        originalMinecart.ejectPassengers();
+        replacement.copyPosition(originalMinecart);
+
+        // Read the neighbours off the old cart and sever them by hand before it is removed:
+        // removing a still-linked cart severs on its own and drops the chains, raining them on the
+        // player mid-upgrade.
+        List<AbstractMinecart> orphaned = originalMinecart.getNeighbours();
+        severLinks(level, originalMinecart, false);
+
+        originalMinecart.remove(Entity.RemovalReason.DISCARDED);
+        level.addFreshEntity(replacement);
+
+        if (replacement instanceof AbstractMinecart relinkable) {
+            orphaned.forEach(neighbour -> Linkable.link(relinkable, neighbour));
+        } else {
+            // A result that is no cart at all hands the chains back instead of rewiring the train
+            // around itself.
+            replacement.spawnAtLocation(level, new ItemStack(Items.IRON_CHAIN, orphaned.size()));
+        }
+
+        heldItem.consume(1, player);
+        player.setItemInHand(hand, heldItem);
+
+        return true;
+    }
+
     // Returns why this link is not allowed, or null if it is.
     private static @Nullable Refusal refusalFor(
             ServerLevel serverLevel, AbstractMinecart first, AbstractMinecart target) {
@@ -225,13 +277,6 @@ public final class MinecartHelper {
         target.playSound(SoundEvents.CHAIN_BREAK);
     }
 
-    /** Whether {@code entity} is a cart currently sitting on no rail. */
-    public static boolean isDerailed(Entity entity) {
-        return entity instanceof AbstractMinecart cart
-                && !BaseRailBlock.isRail(
-                        cart.level().getBlockState(cart.getCurrentBlockPosOrRailBelow()));
-    }
-
     // A chain cannot reach past an intervening cart, so linking through one would produce a train
     // whose carts pass through each other.
     private static boolean isObstructed(
@@ -242,52 +287,6 @@ public final class MinecartHelper {
         return ProjectileUtil.getEntityHitResult(
                 serverLevel, first, from, to, new AABB(from, to).inflate(1),
                 entity -> entity instanceof AbstractMinecart && entity != target, 0) != null;
-    }
-
-    /**
-     * Attempts to upgrade the cart under the player's hand using a crafting recipe, preserving its
-     * links and passengers.
-     */
-    public static boolean tryUpgradeMinecart(
-            ServerPlayer player, ServerLevel level, InteractionHand hand,
-            AbstractMinecart originalMinecart, ItemStack heldItem) {
-        if (!originalMinecart.isAlive()) {
-            return false;
-        }
-
-        ItemStack crafted = craftUpgrade(level, heldItem, originalMinecart.getPickResult());
-        if (!(crafted.getItem() instanceof MinecartItem craftedCart)) {
-            return false;
-        }
-
-        Entity replacement = AbstractMinecart.createMinecart(
-                level, originalMinecart.getX(), originalMinecart.getY(), originalMinecart.getZ(),
-                craftedCart.minecarttweaks$getType(), EntitySpawnReason.DISPENSER, crafted, player);
-
-        originalMinecart.ejectPassengers();
-        replacement.copyPosition(originalMinecart);
-
-        // Read the neighbours off the old cart and sever them by hand before it is removed:
-        // removing a still-linked cart severs on its own and drops the chains, raining them on the
-        // player mid-upgrade.
-        List<AbstractMinecart> orphaned = originalMinecart.getNeighbours();
-        severLinks(level, originalMinecart, false);
-
-        originalMinecart.remove(Entity.RemovalReason.DISCARDED);
-        level.addFreshEntity(replacement);
-
-        if (replacement instanceof AbstractMinecart relinkable) {
-            orphaned.forEach(neighbour -> Linkable.link(relinkable, neighbour));
-        } else {
-            // A result that is no cart at all hands the chains back instead of rewiring the train
-            // around itself.
-            replacement.spawnAtLocation(level, new ItemStack(Items.IRON_CHAIN, orphaned.size()));
-        }
-
-        heldItem.consume(1, player);
-        player.setItemInHand(hand, heldItem);
-
-        return true;
     }
 
     // Resolves what the held item crafts with the cart's own item side by side, or EMPTY if the

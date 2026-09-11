@@ -26,7 +26,6 @@ import club.rainbowkitty.minecarttweaks.MinecartTweaks;
 
 /** A rail block that allows carts to pass through in both axes without turning. */
 public class JunctionRailBlock extends BaseRailBlock implements PolymerTexturedBlock {
-
     // Tripwire is the only borrowable model that is flat, non-colliding and cutout-rendered, as a
     // rail needs. The multi form is deliberate: with a single model Polymer emits a blockstate file
     // holding only the borrowed state, which blanks every other tripwire state on the client.
@@ -86,21 +85,9 @@ public class JunctionRailBlock extends BaseRailBlock implements PolymerTexturedB
         }
     }
 
-    // Block codec, required of every BaseRailBlock subclass.
-    @Override
-    protected MapCodec<? extends BaseRailBlock> codec() {
-        return CODEC;
-    }
-
     @Override
     public Property<RailShape> getShapeProperty() {
         return SHAPE;
-    }
-
-    // Declares the rail shape and waterlogging as this block's state properties.
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(SHAPE, WATERLOGGED);
     }
 
     /**
@@ -110,5 +97,17 @@ public class JunctionRailBlock extends BaseRailBlock implements PolymerTexturedB
     @Override
     public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext context) {
         return POLYMER_STATE;
+    }
+
+    // Block codec, required of every BaseRailBlock subclass.
+    @Override
+    protected MapCodec<? extends BaseRailBlock> codec() {
+        return CODEC;
+    }
+
+    // Declares the rail shape and waterlogging as this block's state properties.
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(SHAPE, WATERLOGGED);
     }
 }

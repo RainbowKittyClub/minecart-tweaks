@@ -37,7 +37,6 @@ import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
 /** Furnace-cart speed, burning any fuel, the parking brake, and keeping chunks loaded. */
 @Mixin(MinecartFurnace.class)
 public abstract class MinecartFurnaceMixin extends AbstractMinecart implements AbstractMinecartExt {
-
     // Chunks held either side of a burning cart, in chunks.
     @Unique
     private static final int CHUNK_TICKET_RADIUS = 3;
@@ -89,6 +88,16 @@ public abstract class MinecartFurnaceMixin extends AbstractMinecart implements A
     protected MinecartFurnaceMixin(EntityType<?> entityType, Level level) {
         super(entityType, level);
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public double minecarttweaks$driveAcceleration() {
+        return fuel > 0 && !minecarttweaks$parked ? ACCELERATION : 0.0;
+    }
+
+    @Override
+    public Vec3 minecarttweaks$driveHeading() {
+        return minecarttweaks$driveAcceleration() > 0 ? push : Vec3.ZERO;
     }
 
     // Undoes vanilla's halving, which leaves a furnace cart slower than what it tows. Only under
@@ -191,16 +200,6 @@ public abstract class MinecartFurnaceMixin extends AbstractMinecart implements A
         if (fuel > 0 && tickCount % PARKED_FUEL_INTERVAL != 0 && minecarttweaks$parked) {
             fuel++;
         }
-    }
-
-    @Override
-    public double minecarttweaks$driveAcceleration() {
-        return fuel > 0 && !minecarttweaks$parked ? ACCELERATION : 0.0;
-    }
-
-    @Override
-    public Vec3 minecarttweaks$driveHeading() {
-        return minecarttweaks$driveAcceleration() > 0 ? push : Vec3.ZERO;
     }
 
     // Replaces vanilla's hardcoded burn-time ceiling with the rule's.

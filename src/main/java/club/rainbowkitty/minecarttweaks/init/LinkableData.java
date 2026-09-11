@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.attachment;
+package club.rainbowkitty.minecarttweaks.init;
 
 import java.util.Optional;
 import java.util.UUID;

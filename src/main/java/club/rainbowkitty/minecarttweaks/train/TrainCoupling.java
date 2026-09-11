@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.util;
+package club.rainbowkitty.minecarttweaks.train;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,8 +12,10 @@ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
 import net.minecraft.world.phys.Vec3;
 
-import club.rainbowkitty.minecarttweaks.api.Linkable;
+import club.rainbowkitty.minecarttweaks.ext.Linkable;
+import club.rainbowkitty.minecarttweaks.rail.RailPath;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
+import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
 
 /**
  * The physics of a train. Its cars are held at one speed as a single body rather than each link

@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.items;
+package club.rainbowkitty.minecarttweaks.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
@@ -14,7 +14,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-import club.rainbowkitty.minecarttweaks.blocks.SwitchedRailBlock;
+import club.rainbowkitty.minecarttweaks.block.SwitchedRailBlock;
 
 /** A tool that throws a right-clicked switched rail to its other branch while it is idle. */
 public class WrenchItem extends Item implements PolymerItem {

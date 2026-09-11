@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.util;
+package club.rainbowkitty.minecarttweaks.train;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -10,11 +10,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 
+import club.rainbowkitty.minecarttweaks.collision.CartInteraction;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
-import club.rainbowkitty.minecarttweaks.util.CartInteraction;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
+import club.rainbowkitty.minecarttweaks.train.TrainSnapshot;
 import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
-import club.rainbowkitty.minecarttweaks.util.TrainCoupling;
-import club.rainbowkitty.minecarttweaks.util.TrainSnapshot;
 
 /** Severs a destroyed cart's links, and thins out shoves aimed at a train. */
 @Mixin(Entity.class)

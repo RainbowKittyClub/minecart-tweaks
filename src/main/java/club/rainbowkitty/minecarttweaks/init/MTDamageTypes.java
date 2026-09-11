@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.data;
+package club.rainbowkitty.minecarttweaks.init;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;

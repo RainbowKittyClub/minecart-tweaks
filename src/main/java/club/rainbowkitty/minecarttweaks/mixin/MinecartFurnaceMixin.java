@@ -30,9 +30,9 @@ import club.rainbowkitty.minecarttweaks.MinecartTweaks;
 import club.rainbowkitty.minecarttweaks.ext.AbstractMinecartExt;
 import club.rainbowkitty.minecarttweaks.init.MTTicketTypes;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
 import club.rainbowkitty.minecarttweaks.util.FurnaceFuel;
 import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
-import club.rainbowkitty.minecarttweaks.util.TrainCoupling;
 
 /** Furnace-cart speed, burning any fuel, the parking brake, and keeping chunks loaded. */
 @Mixin(MinecartFurnace.class)

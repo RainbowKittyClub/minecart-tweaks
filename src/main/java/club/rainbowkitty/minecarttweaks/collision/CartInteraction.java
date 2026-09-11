@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.util;
+package club.rainbowkitty.minecarttweaks.collision;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -8,7 +8,9 @@ import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.gamerules.GameRule;
 
+import club.rainbowkitty.minecarttweaks.rail.RailContext;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
 
 /**
  * The single answer to what a cart does to something it meets. The movement code

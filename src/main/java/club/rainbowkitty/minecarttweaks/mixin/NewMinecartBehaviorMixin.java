@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
 import net.minecraft.world.phys.AABB;
 
-import club.rainbowkitty.minecarttweaks.util.CartInteraction;
+import club.rainbowkitty.minecarttweaks.collision.CartInteraction;
 
 /** Holds vanilla's pickup to the speed the resolver allows one at. */
 @Mixin(NewMinecartBehavior.class)

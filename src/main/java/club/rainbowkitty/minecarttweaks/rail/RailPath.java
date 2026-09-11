@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.util;
+package club.rainbowkitty.minecarttweaks.rail;
 
 import org.jspecify.annotations.Nullable;
 
@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.RailShape;
 import net.minecraft.world.phys.Vec3;
 
-import club.rainbowkitty.minecarttweaks.blocks.JunctionRailBlock;
+import club.rainbowkitty.minecarttweaks.block.JunctionRailBlock;
 
 /**
  * The stretch of track between two carts: how far apart they are along the rails, and the exit each

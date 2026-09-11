@@ -17,8 +17,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 import club.rainbowkitty.minecarttweaks.MinecartTweaks;
-import club.rainbowkitty.minecarttweaks.blocks.JunctionRailBlock;
-import club.rainbowkitty.minecarttweaks.blocks.SwitchedRailBlock;
+import club.rainbowkitty.minecarttweaks.block.JunctionRailBlock;
+import club.rainbowkitty.minecarttweaks.block.SwitchedRailBlock;
 
 /** Block and block-item registrations. */
 public final class MTBlocks {

@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.RailState;
 
-import club.rainbowkitty.minecarttweaks.blocks.JunctionRailBlock;
-import club.rainbowkitty.minecarttweaks.blocks.SwitchedRailBlock;
+import club.rainbowkitty.minecarttweaks.block.JunctionRailBlock;
+import club.rainbowkitty.minecarttweaks.block.SwitchedRailBlock;
 
 /** Keeps this mod's rails from being reshaped by the vanilla rail-connection pass. */
 @Mixin(RailState.class)

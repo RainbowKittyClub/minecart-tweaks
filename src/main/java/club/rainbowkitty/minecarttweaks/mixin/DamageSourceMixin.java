@@ -15,7 +15,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 
-import club.rainbowkitty.minecarttweaks.data.MTDamageTypes;
+import club.rainbowkitty.minecarttweaks.init.MTDamageTypes;
 
 /** Death message for a cart kill: split on whether it was a train and whether it had a rider. */
 @Mixin(DamageSource.class)

@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.blocks;
+package club.rainbowkitty.minecarttweaks.block;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.blocks.api.BlockModelType;

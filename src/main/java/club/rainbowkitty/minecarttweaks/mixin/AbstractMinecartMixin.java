@@ -23,19 +23,19 @@ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-import club.rainbowkitty.minecarttweaks.blocks.JunctionRailBlock;
-import club.rainbowkitty.minecarttweaks.blocks.SwitchedRailBlock;
+import club.rainbowkitty.minecarttweaks.block.JunctionRailBlock;
+import club.rainbowkitty.minecarttweaks.block.SwitchedRailBlock;
+import club.rainbowkitty.minecarttweaks.collision.CartImpact;
+import club.rainbowkitty.minecarttweaks.collision.CartInteraction;
 import club.rainbowkitty.minecarttweaks.ext.AbstractMinecartExt;
 import club.rainbowkitty.minecarttweaks.init.MTAttachments;
+import club.rainbowkitty.minecarttweaks.rail.RailContext;
+import club.rainbowkitty.minecarttweaks.rail.RailPath;
+import club.rainbowkitty.minecarttweaks.rail.RailPath.Bend;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
-import club.rainbowkitty.minecarttweaks.util.CartImpact;
-import club.rainbowkitty.minecarttweaks.util.CartInteraction;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
+import club.rainbowkitty.minecarttweaks.train.TrainSnapshot;
 import club.rainbowkitty.minecarttweaks.util.MinecartHelper;
-import club.rainbowkitty.minecarttweaks.util.RailContext;
-import club.rainbowkitty.minecarttweaks.util.RailPath;
-import club.rainbowkitty.minecarttweaks.util.RailPath.Bend;
-import club.rainbowkitty.minecarttweaks.util.TrainCoupling;
-import club.rainbowkitty.minecarttweaks.util.TrainSnapshot;
 import club.rainbowkitty.minecarttweaks.visual.LinkChain;
 
 /**

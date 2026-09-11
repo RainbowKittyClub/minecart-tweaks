@@ -6,9 +6,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.phys.Vec3;
 
-import club.rainbowkitty.minecarttweaks.api.Linkable;
-import club.rainbowkitty.minecarttweaks.util.RailContext;
-import club.rainbowkitty.minecarttweaks.util.TrainSnapshot;
+import club.rainbowkitty.minecarttweaks.rail.RailContext;
+import club.rainbowkitty.minecarttweaks.train.TrainSnapshot;
 
 /**
  * Access interface injected onto {@link AbstractMinecart} to expose link state.

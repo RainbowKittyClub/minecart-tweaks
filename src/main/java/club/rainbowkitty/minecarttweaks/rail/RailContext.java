@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.util;
+package club.rainbowkitty.minecarttweaks.rail;
 
 import org.jspecify.annotations.Nullable;
 

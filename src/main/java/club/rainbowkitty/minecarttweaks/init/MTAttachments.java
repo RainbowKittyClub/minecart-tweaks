@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 
 import club.rainbowkitty.minecarttweaks.MinecartTweaks;
-import club.rainbowkitty.minecarttweaks.attachment.LinkableData;
 
 /**
  * This mod's entity attachments. Persistent but unsynced — the chain between linked carts is drawn

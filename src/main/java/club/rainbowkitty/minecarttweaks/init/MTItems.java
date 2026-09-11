@@ -10,7 +10,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
 import club.rainbowkitty.minecarttweaks.MinecartTweaks;
-import club.rainbowkitty.minecarttweaks.items.WrenchItem;
+import club.rainbowkitty.minecarttweaks.item.WrenchItem;
 
 /** Non-block item registrations. */
 public final class MTItems {

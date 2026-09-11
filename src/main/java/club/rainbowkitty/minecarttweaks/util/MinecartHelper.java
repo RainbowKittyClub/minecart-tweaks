@@ -28,11 +28,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
 import club.rainbowkitty.minecarttweaks.MinecartTweaks;
-import club.rainbowkitty.minecarttweaks.api.Linkable;
-import club.rainbowkitty.minecarttweaks.data.MTTags;
-import club.rainbowkitty.minecarttweaks.datacomponent.SelectedCart;
+import club.rainbowkitty.minecarttweaks.ext.Linkable;
 import club.rainbowkitty.minecarttweaks.init.MTDataComponents;
+import club.rainbowkitty.minecarttweaks.init.MTTags;
+import club.rainbowkitty.minecarttweaks.init.SelectedCart;
+import club.rainbowkitty.minecarttweaks.rail.RailPath;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
+import club.rainbowkitty.minecarttweaks.train.TrainSnapshot;
 
 /** Utility methods for minecart linking, upgrading, and brake logic. */
 public final class MinecartHelper {

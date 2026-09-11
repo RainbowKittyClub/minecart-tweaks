@@ -13,7 +13,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
 
-import club.rainbowkitty.minecarttweaks.util.TrainCoupling;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
 
 /** Holding a train's position updates back so its cars are replayed on one beat. */
 @Mixin(ServerEntity.class)

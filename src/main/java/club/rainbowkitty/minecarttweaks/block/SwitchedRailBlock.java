@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.blocks;
+package club.rainbowkitty.minecarttweaks.block;
 
 import java.util.EnumMap;
 import java.util.Map;

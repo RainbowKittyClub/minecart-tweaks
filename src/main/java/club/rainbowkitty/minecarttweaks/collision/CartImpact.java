@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.util;
+package club.rainbowkitty.minecarttweaks.collision;
 
 import java.util.List;
 
@@ -10,8 +10,10 @@ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import club.rainbowkitty.minecarttweaks.data.MTDamageTypes;
+import club.rainbowkitty.minecarttweaks.init.MTDamageTypes;
 import club.rainbowkitty.minecarttweaks.rule.MTGameRules;
+import club.rainbowkitty.minecarttweaks.train.TrainCoupling;
+import club.rainbowkitty.minecarttweaks.train.TrainSnapshot;
 
 /**
  * What a moving cart does to whatever it runs into. Which of them it may do anything to at all is

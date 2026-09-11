@@ -1,4 +1,4 @@
-package club.rainbowkitty.minecarttweaks.api;
+package club.rainbowkitty.minecarttweaks.ext;
 
 import java.util.List;
 

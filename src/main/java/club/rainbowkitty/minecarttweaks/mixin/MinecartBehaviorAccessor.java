@@ -15,5 +15,5 @@ public interface MinecartBehaviorAccessor {
 
     /** The cart this behavior moves. */
     @Accessor("minecart")
-    AbstractMinecart minecarttweaks$cart();
+    public AbstractMinecart minecarttweaks$cart();
 }

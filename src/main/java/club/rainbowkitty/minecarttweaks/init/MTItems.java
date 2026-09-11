@@ -23,6 +23,7 @@ public final class MTItems {
     public static final Item WRENCH =
             new WrenchItem(new Item.Properties().stacksTo(1).setId(WRENCH_KEY));
 
+    // Static-only; blocks instantiation.
     private MTItems() {}
 
     /** Registers all non-block items into the vanilla registry. */

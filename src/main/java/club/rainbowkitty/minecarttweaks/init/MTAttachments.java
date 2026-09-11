@@ -18,6 +18,7 @@ public final class MTAttachments {
     public static final AttachmentType<LinkableData> LINK =
             AttachmentRegistry.createPersistent(MinecartTweaks.id("link"), LinkableData.CODEC);
 
+    // Static-only; blocks instantiation.
     private MTAttachments() {}
 
     /** Forces class initialization so the type is registered before the first world loads. */

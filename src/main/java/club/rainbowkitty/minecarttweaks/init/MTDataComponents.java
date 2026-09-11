@@ -18,6 +18,7 @@ public final class MTDataComponents {
                     .networkSynchronized(SelectedCart.STREAM_CODEC)
                     .build();
 
+    // Static-only; blocks instantiation.
     private MTDataComponents() {}
 
     /** Registers all data component types into the vanilla registry. */

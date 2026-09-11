@@ -16,6 +16,10 @@ import net.minecraft.world.level.block.BaseRailBlock;
  * <p>A cart caches one of these per tick. It is therefore as of the start of the tick, and a cart
  * moving fast enough to cross a block within one has a neighbourhood a block behind where it now
  * is — harmless, because the three blocks recorded still overlap the one it moved to.
+ *
+ * @param rail the rail the cart stands on, or null if it is not on one
+ * @param first the rail one exit leads to, or null if that exit leads off the track
+ * @param second the rail the other exit leads to, or null if that exit leads off the track
  */
 public record RailContext(
         @Nullable BlockPos rail,

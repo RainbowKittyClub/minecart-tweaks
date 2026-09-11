@@ -15,6 +15,7 @@ public final class FurnaceFuel {
     // scaled by the ratio rather than a cart-specific table being invented.
     private static final double CART_SCALE = 2.25;
 
+    // Static-only; blocks instantiation.
     private FurnaceFuel() {}
 
     /** How many ticks {@code stack} burns for in a cart, or zero if nothing will burn it. */

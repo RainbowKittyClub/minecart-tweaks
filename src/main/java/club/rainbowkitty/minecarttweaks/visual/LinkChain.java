@@ -238,6 +238,7 @@ public final class LinkChain extends ElementHolder {
             Arrays.fill(pitches, entity.getXRot());
         }
 
+        // Records this tick's placement, overwriting the oldest sample.
         private void push(Entity entity) {
             positions[next] = entity.position();
             yaws[next] = entity.getYRot();
@@ -245,14 +246,17 @@ public final class LinkChain extends ElementHolder {
             next = (next + 1) % SIZE;
         }
 
+        // The lagged position, mixed from the two samples the lag falls between.
         private Vec3 position() {
             return Mth.lerp(FRACTION, positions[index(WHOLE)], positions[index(WHOLE + 1)]);
         }
 
+        // The lagged yaw.
         private float yaw() {
             return rotation(yaws);
         }
 
+        // The lagged pitch.
         private float pitch() {
             return rotation(pitches);
         }

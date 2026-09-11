@@ -8,7 +8,11 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.codec.StreamCodec;
 
-/** The cart a link item has selected as one end of the link being built. */
+/**
+ * The cart a link item has selected as one end of the link being built.
+ *
+ * @param value the selected cart's UUID
+ */
 public record SelectedCart(UUID value) {
 
     public static final Codec<SelectedCart> CODEC =

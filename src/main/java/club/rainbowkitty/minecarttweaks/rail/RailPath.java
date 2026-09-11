@@ -18,6 +18,10 @@ import club.rainbowkitty.minecarttweaks.block.JunctionRailBlock;
  * The stretch of track between two carts: how far apart they are along the rails, and the exit each
  * of them leaves its own block by to travel from the second towards the first. Both directions are
  * genuine exits of the block the cart stands in, never the reverse of the exit facing the other.
+ *
+ * @param distance how far apart the two carts are along the rails, in blocks
+ * @param fromForward the exit the far cart leaves its own block by, travelling towards the near
+ * @param toForward the exit the near cart leaves its own block by, travelling towards the far
  */
 public record RailPath(double distance, Vec3 fromForward, Vec3 toForward) {
 
@@ -33,6 +37,9 @@ public record RailPath(double distance, Vec3 fromForward, Vec3 toForward) {
     /**
      * How the rail under a cart turns and climbs in the direction the cart is travelling. Both are
      * signed, so a run of corners reversing each other can be told from a genuine bend.
+     *
+     * @param turn which way the rail turns: -1, 0 or 1
+     * @param grade which way the rail climbs: -1, 0 or 1
      */
     public record Bend(int turn, int grade) {
 

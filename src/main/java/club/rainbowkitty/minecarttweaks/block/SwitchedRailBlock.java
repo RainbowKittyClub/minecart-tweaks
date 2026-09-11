@@ -159,6 +159,7 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
         orient(level, on.relative(travel), travel);
     }
 
+    // Points one switch at a car travelling the given way; any other block at pos is left alone.
     private static void orient(ServerLevel level, BlockPos pos, Direction travel) {
         BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof SwitchedRailBlock switchRail)) {
@@ -252,6 +253,7 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
         }
     }
 
+    // Whether a cart still sits on the switch, in which case settling has to wait for it.
     private static boolean occupied(Level level, BlockPos pos) {
         return !level.getEntitiesOfClass(AbstractMinecart.class, new AABB(pos)).isEmpty();
     }
@@ -262,11 +264,13 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
         return state;
     }
 
+    // Turns the switch with a rotated structure, carrying its diverge side along.
     @Override
     protected BlockState rotate(BlockState state, Rotation rotation) {
         return reface(state, rotation.rotate(state.getValue(FACING)));
     }
 
+    // Reflects the switch with a mirrored structure, carrying its diverge side along.
     @Override
     protected BlockState mirror(BlockState state, Mirror mirror) {
         return reface(state, mirror.mirror(state.getValue(FACING)));
@@ -278,6 +282,7 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
                 .setValue(SHAPE, restingShape(facing, divergesForward(state)));
     }
 
+    // Declares facing, signal, diverge side, shape and waterlogging as state properties.
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, POWERED, REVERSED, SHAPE, WATERLOGGED);
@@ -291,6 +296,7 @@ public class SwitchedRailBlock extends BaseRailBlock implements PolymerTexturedB
         return model.get(state.getValue(FACING));
     }
 
+    // Reserves one Polymer block state showing the named model at the given yaw.
     private static BlockState borrow(String model, int yRotation) {
         return PolymerBlockResourceUtils.requestBlock(
                 BlockModelType.TRIPWIRE_FLAT,

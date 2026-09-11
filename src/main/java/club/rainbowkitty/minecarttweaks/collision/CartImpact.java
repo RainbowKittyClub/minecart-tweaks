@@ -54,6 +54,7 @@ public final class CartImpact {
             EntityTypes.PLAYER.getDimensions().width(),
             EntityTypes.PLAYER.getDimensions().height());
 
+    // Static-only; blocks instantiation.
     private CartImpact() {}
 
     /**
@@ -127,20 +128,16 @@ public final class CartImpact {
         }
     }
 
+    // Breaks the cart into its item, unless something else already removed it this tick.
     private static void writeOff(ServerLevel level, AbstractMinecart cart) {
         if (!cart.isRemoved()) {
             cart.destroy(level, cart.getPickResult().getItem());
         }
     }
 
-    /*
-     * Throws what the cart is touching clear of the rail, mostly sideways: a shove along the track
-     * only sets the thing running ahead to be caught again next tick, since the cart is always the
-     * faster. The same impulse whatever it lands on, square-rooted so the bounds on size spread the
-     * throw fourfold rather than sixteenfold.
-     *
-     * Returns what the shove costs one car: the speed actually gained along the track, by mass.
-     */
+    // Throws what the cart hit clear of the rail, mostly sideways: a shove along the track only
+    // sets it running ahead to be caught again next tick. Square-rooted, so the bounds on size
+    // spread the throw fourfold, not sixteenfold. Returns what the shove costs one car.
     private static double shove(AbstractMinecart cart, LivingEntity living, double sizeFactor) {
         Vec3 movement = cart.getDeltaMovement();
         Vec3 heading = movement.horizontal();
@@ -201,6 +198,7 @@ public final class CartImpact {
         return Math.clamp(volume / REFERENCE_VOLUME, MIN_SIZE_FACTOR, MAX_SIZE_FACTOR);
     }
 
+    // Volume of an entity's bounding box, which is square in plan.
     private static double boxVolume(double width, double height) {
         return width * width * height;
     }

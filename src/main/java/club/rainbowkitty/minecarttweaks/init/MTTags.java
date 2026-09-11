@@ -9,6 +9,7 @@ import club.rainbowkitty.minecarttweaks.MinecartTweaks;
 /** Tag keys this mod defines. */
 public final class MTTags {
 
+    // Static-only; blocks instantiation.
     private MTTags() {}
 
     /** Item tag keys. */
@@ -18,6 +19,7 @@ public final class MTTags {
         public static final TagKey<Item> LINK_ITEMS =
                 TagKey.create(Registries.ITEM, MinecartTweaks.id("link_items"));
 
+        // Static-only; blocks instantiation.
         private Items() {}
     }
 }

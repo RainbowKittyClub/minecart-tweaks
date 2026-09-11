@@ -95,6 +95,7 @@ public final class MTGameRules {
     // Enabled features are fixed for the lifetime of a loaded world, so once is enough.
     private static boolean trainsSupported;
 
+    // Static-only; blocks instantiation.
     private MTGameRules() {}
 
     /** Forces class initialization so the rules land in the registry before it freezes. */

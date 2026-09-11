@@ -55,6 +55,7 @@ public final class TrainCoupling {
     // Below this a length is treated as zero.
     private static final double EPSILON = 1.0E-5;
 
+    // Static-only; blocks instantiation.
     private TrainCoupling() {}
 
     /**

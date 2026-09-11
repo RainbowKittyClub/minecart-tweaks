@@ -37,6 +37,7 @@ public final class MTBlocks {
     /** The switched rail block item. */
     public static final BlockItem SWITCHED_RAIL_ITEM = railItem("switch_rail", SWITCHED_RAIL);
 
+    // Static-only; blocks instantiation.
     private MTBlocks() {}
 
     /** Registers all blocks and their corresponding items into the vanilla registries. */
@@ -68,15 +69,18 @@ public final class MTBlocks {
                 true);
     }
 
+    // Registers a block and its item together, so the two can never be given differing names.
     private static void register(String name, Block block, BlockItem item) {
         Registry.register(BuiltInRegistries.BLOCK, blockKey(name), block);
         Registry.register(BuiltInRegistries.ITEM, itemKey(name), item);
     }
 
+    // This mod's key for a block of that name.
     private static ResourceKey<Block> blockKey(String name) {
         return ResourceKey.create(Registries.BLOCK, MinecartTweaks.id(name));
     }
 
+    // This mod's key for an item of that name.
     private static ResourceKey<Item> itemKey(String name) {
         return ResourceKey.create(Registries.ITEM, MinecartTweaks.id(name));
     }

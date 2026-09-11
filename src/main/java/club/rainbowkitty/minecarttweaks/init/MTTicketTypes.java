@@ -21,6 +21,7 @@ public final class MTTicketTypes {
             new TicketType(TIMEOUT, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION
                     | TicketType.FLAG_KEEP_DIMENSION_ACTIVE));
 
+    // Static-only; blocks instantiation.
     private MTTicketTypes() {}
 
     /** Forces class initialization so the type lands in the registry before it freezes. */

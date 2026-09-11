@@ -142,12 +142,10 @@ public abstract class MinecartFurnaceMixin extends AbstractMinecart implements A
         cir.setReturnValue(deltaMovement.add(push.scale(minecarttweaks$sharedAcceleration())));
     }
 
-    /*
-     * Points the engine along a heading read off the cart's movement. A reversal without leaving
-     * the rail it was aimed on is refused: vanilla re-derives movement from the impulse each tick,
-     * so a shove or a slope driving the cart backwards would re-aim the engine after it and have it
-     * drive itself home. A hairpin, which genuinely reverses a cart, does leave the rail.
-     */
+    // Aims the engine along a heading read off the cart's movement. A reversal without leaving the
+    // rail it was aimed on is refused: vanilla re-derives movement from the impulse, so a shove or
+    // a slope would re-aim the engine after the cart and have it drive itself home; a hairpin,
+    // which truly reverses a cart, does leave the rail.
     @Unique
     private void minecarttweaks$aimAlong(Vec3 heading) {
         BlockPos rail = getCurrentBlockPosOrRailBelow();

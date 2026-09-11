@@ -13,5 +13,6 @@ public final class MTDamageTypes {
     public static final ResourceKey<DamageType> MINECART_DAMAGE =
             ResourceKey.create(Registries.DAMAGE_TYPE, MinecartTweaks.id("minecart"));
 
+    // Static-only; blocks instantiation.
     private MTDamageTypes() {}
 }

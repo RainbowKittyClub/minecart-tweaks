@@ -58,6 +58,7 @@ public final class MinecartHelper {
         }
     }
 
+    // Static-only; blocks instantiation.
     private MinecartHelper() {}
 
     /** Returns true if {@code cart} is standing on a rail that should stop it. */

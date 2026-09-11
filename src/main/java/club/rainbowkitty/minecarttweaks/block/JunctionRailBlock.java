@@ -86,6 +86,7 @@ public class JunctionRailBlock extends BaseRailBlock implements PolymerTexturedB
         }
     }
 
+    // Block codec, required of every BaseRailBlock subclass.
     @Override
     protected MapCodec<? extends BaseRailBlock> codec() {
         return CODEC;
@@ -96,6 +97,7 @@ public class JunctionRailBlock extends BaseRailBlock implements PolymerTexturedB
         return SHAPE;
     }
 
+    // Declares the rail shape and waterlogging as this block's state properties.
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(SHAPE, WATERLOGGED);

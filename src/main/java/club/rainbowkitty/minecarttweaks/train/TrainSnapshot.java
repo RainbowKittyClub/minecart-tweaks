@@ -30,6 +30,7 @@ public final class TrainSnapshot {
     private final long builtTick;
     private final long builtGeneration;
 
+    // Stamps the snapshot with the generation current when it was built, for staleness checks.
     private TrainSnapshot(List<AbstractMinecart> cars, boolean closed, long builtTick) {
         this.cars = cars;
         this.closed = closed;
